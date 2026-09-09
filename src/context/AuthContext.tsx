@@ -25,24 +25,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Base de datos inicial 100% virgen: Solo contiene al Superadmin oficial
 const INITIAL_USERS: { [email: string]: { user: User; pass: string } } = {
   'kuadrapp.ve@gmail.com': {
     user: { id: 'sa-1', email: 'kuadrapp.ve@gmail.com', name: 'Oswaldo Hidalgo', plan: 'superadmin', isActive: true },
     pass: 'Kuadrapp2026*'
-  },
-  'maria@dulces.com': {
-    user: { id: 'u-1', email: 'maria@dulces.com', name: 'María Repostera', plan: 'pro', isActive: true, mustChangePassword: true },
-    pass: '123456'
   }
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usersMap, setUsersMap] = useState(() => {
-    const saved = localStorage.getItem('kuadrapp_users_db_v8');
+    const saved = localStorage.getItem('kuadrapp_users_db_v9'); // Versión actualizada limpia
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        // Asegurar que tengan isActive en true por defecto
         Object.keys(parsed).forEach(k => {
           if (parsed[k].user.isActive === undefined) parsed[k].user.isActive = true;
           if (k === 'kuadrapp.ve@gmail.com') {
@@ -57,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [passwordsMap, setPasswordsMap] = useState(() => {
-    const saved = localStorage.getItem('kuadrapp_pass_db_v8');
+    const saved = localStorage.getItem('kuadrapp_pass_db_v9');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {
         const passes: { [email: string]: string } = {};
@@ -71,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('kuadrapp_current_user_v8');
+    const saved = localStorage.getItem('kuadrapp_current_user_v9');
     if (saved) {
       try { 
         const usr = JSON.parse(saved);
@@ -86,18 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(usersMap));
+    localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(usersMap));
   }, [usersMap]);
 
   useEffect(() => {
-    localStorage.setItem('kuadrapp_pass_db_v8', JSON.stringify(passwordsMap));
+    localStorage.setItem('kuadrapp_pass_db_v9', JSON.stringify(passwordsMap));
   }, [passwordsMap]);
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('kuadrapp_current_user_v8', JSON.stringify(currentUser));
+      localStorage.setItem('kuadrapp_current_user_v9', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem('kuadrapp_current_user_v8');
+      localStorage.removeItem('kuadrapp_current_user_v9');
     }
   }, [currentUser]);
 
@@ -125,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: 'usr-' + Date.now(),
       email: cleanEmail,
       name: name.trim() || 'Nuevo Repostero',
-      plan: 'free', // <--- Estrictamente en Plan Free por defecto
+      plan: 'free', // Estrictamente en plan Free por defecto
       isActive: true
     };
 
@@ -138,9 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
     setCurrentUser(newUser);
     
-    // Forzar persistencia inmediata para el panel de administración
-    localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedUsersMap));
-    
+    localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedUsersMap));
     return true;
   };
 
@@ -156,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (usersMap[currentUser.email]) {
       const updatedMap = { ...usersMap, [currentUser.email]: { ...usersMap[currentUser.email], user: updated } };
       setUsersMap(updatedMap);
-      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedMap));
+      localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedMap));
     }
   };
 
@@ -166,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updatedUsersMap = { ...usersMap, [cleanEmail]: { user: newUser, pass } };
     setUsersMap(updatedUsersMap);
     setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
-    localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedUsersMap));
+    localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedUsersMap));
   };
 
   const deleteUser = (id: string) => {
@@ -178,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       delete copyPass[emailKey];
       setUsersMap(copyUsers);
       setPasswordsMap(copyPass);
-      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(copyUsers));
+      localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(copyUsers));
     }
   };
 
@@ -189,11 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUsr = { ...currentUsr, isActive: currentUsr.isActive === false ? true : false };
       const updatedMap = { ...usersMap, [emailKey]: { ...usersMap[emailKey], user: updatedUsr } };
       setUsersMap(updatedMap);
-      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedMap));
+      localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedMap));
     }
   };
 
-  // Forzar que el Superadmin aparezca siempre con nombre correcto y activo en la lista
   const allUsers: User[] = Object.values(usersMap).map((item: any) => {
     const u = item.user;
     if (u.email === 'kuadrapp.ve@gmail.com') {
