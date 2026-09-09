@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KuadrappLogo } from '../components/KuadrappLogo';
+import { supabase } from '../database/supabase';
 
 export function SuperAdminView({ showToast }: { showToast: (msg: string) => void }) {
   const { usersList, toggleUserStatus, logout, deleteUser, addUser } = useAuth();
@@ -51,26 +52,37 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
     setShowUserModal(true);
   };
 
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName || !formEmail) return;
 
     if (editingUserId) {
-      const savedDb = JSON.parse(localStorage.getItem('kuadrapp_users_db_v9') || '{}');
-      const emailKey = Object.keys(savedDb).find(k => savedDb[k].user.id === editingUserId);
-      
-      if (emailKey) {
-        savedDb[emailKey].user.name = formName;
-        savedDb[emailKey].user.plan = formPlan;
-        if (formPassword) {
-          savedDb[emailKey].pass = formPassword;
-          savedDb[emailKey].user.mustChangePassword = true;
+      const userToEdit = usersList.find(u => u.id === editingUserId);
+      if (userToEdit) {
+        const { data } = await supabase
+          .from('tenant_configs')
+          .select('*')
+          .eq('email', userToEdit.email);
+
+        if (data && data.length > 0) {
+          const row = data[0];
+          const updatedJson = {
+            ...row.config_json,
+            name: formName.trim(),
+            plan: formPlan,
+            ...(formPassword ? { password: formPassword, mustChangePassword: true } : {})
+          };
+
+          await supabase
+            .from('tenant_configs')
+            .update({ config_json: updatedJson })
+            .eq('email', userToEdit.email);
+
+          showToast(`✨ Inquilino ${formName} actualizado con éxito en Supabase.`);
         }
-        localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(savedDb));
-        showToast(`✨ Inquilino ${formName} actualizado con éxito.`);
       }
     } else {
-      addUser({
+      await addUser({
         email: formEmail.trim().toLowerCase(),
         name: formName.trim(),
         plan: formPlan,

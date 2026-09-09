@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: cfg.id || row.id,
             email: row.email,
             name: cfg.name || 'Usuario',
-            plan: (cfg.plan || 'free') as User['plan'], // Casteo seguro de plan
+            plan: (cfg.plan || 'free') as User['plan'],
             isActive: cfg.isActive ?? true,
             mustChangePassword: cfg.mustChangePassword ?? false
           };
@@ -118,17 +118,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('tenant_configs')
       .select('*')
-      .eq('email', cleanEmail)
-      .single();
+      .eq('email', cleanEmail);
 
-    if (error || !data) return false;
+    if (error || !data || data.length === 0) return false;
 
-    const cfg = data.config_json || {};
+    const row = data[0];
+    const cfg = row.config_json || {};
     if (cfg.password && cfg.password !== pass) return false;
     if (cfg.isActive === false) return false;
 
     const loggedUser: User = {
-      id: cfg.id || data.id,
+      id: cfg.id || row.id,
       email: cleanEmail,
       name: cfg.name || 'Usuario',
       plan: (cfg.plan || 'free') as User['plan'],
@@ -145,10 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: existing } = await supabase
       .from('tenant_configs')
       .select('email')
-      .eq('email', cleanEmail)
-      .single();
+      .eq('email', cleanEmail);
 
-    if (existing) return false;
+    if (existing && existing.length > 0) return false;
 
     const newConfig = {
       id: 'usr-' + Date.now(),
@@ -192,11 +191,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from('tenant_configs')
       .select('*')
-      .eq('email', cleanEmail)
-      .single();
+      .eq('email', cleanEmail);
 
-    if (data) {
-      const updatedJson = { ...data.config_json, password: newPass, mustChangePassword: false };
+    if (data && data.length > 0) {
+      const row = data[0];
+      const updatedJson = { ...row.config_json, password: newPass, mustChangePassword: false };
       await supabase
         .from('tenant_configs')
         .update({ config_json: updatedJson })
@@ -246,12 +245,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase
         .from('tenant_configs')
         .select('*')
-        .eq('email', userToToggle.email)
-        .single();
+        .eq('email', userToToggle.email);
 
-      if (data) {
-        const currentActive = data.config_json.isActive ?? true;
-        const updatedJson = { ...data.config_json, isActive: !currentActive };
+      if (data && data.length > 0) {
+        const row = data[0];
+        const currentActive = row.config_json.isActive ?? true;
+        const updatedJson = { ...row.config_json, isActive: !currentActive };
         await supabase
           .from('tenant_configs')
           .update({ config_json: updatedJson })
