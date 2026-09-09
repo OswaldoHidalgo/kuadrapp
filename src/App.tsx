@@ -37,7 +37,6 @@ function MainApp() {
     localStorage.setItem('kuadrapp_theme_v8', JSON.stringify(theme));
   }, [theme]);
 
-  // CORREGIDO: Evita usar 'guest' para prevenir consultas erróneas a Supabase
   const userEmail = currentUser?.email || '';
 
   const [config, setConfig] = useState<any>(null);
@@ -290,33 +289,49 @@ function MainApp() {
   const calculateRecipe = (recipe: Recipe, targetYield: number) => {
     if (!recipe || recipe.yield <= 0 || !config) return null;
     const multiplier = targetYield / recipe.yield;
-    const ingredientsMap = new Map(ingredients.map(i => [i.id, i]));
+    
+    const ingredientsMap = new Map(ingredients.map(i => [
+      i.id, 
+      {
+        ...i,
+        purchasePrice: Number(i.purchasePrice ?? i.purchase_price ?? 0),
+        purchaseQuantity: Number(i.purchaseQuantity ?? i.purchase_quantity ?? 1)
+      }
+    ]));
 
     let rawIngredientsCost = 0;
-    for (const item of recipe.items) {
+    for (const item of (recipe.items || [])) {
       const ing = ingredientsMap.get(item.ingredientId);
       if (ing && ing.purchaseQuantity > 0) {
         const unitCost = ing.purchasePrice / ing.purchaseQuantity;
-        rawIngredientsCost += unitCost * (item.quantityUsed * multiplier);
+        rawIngredientsCost += unitCost * (Number(item.quantityUsed || 0) * multiplier);
       }
     }
-    const ingredientsCostWithWaste = rawIngredientsCost * (1 + config.wastePercentage / 100);
+    const wastePct = Number(config.wastePercentage || 0);
+    const ingredientsCostWithWaste = rawIngredientsCost * (1 + wastePct / 100);
 
     let packagingCost = 0;
     for (const item of (recipe.packagingItems || [])) {
       const pkg = ingredientsMap.get(item.ingredientId);
       if (pkg && pkg.purchaseQuantity > 0) {
         const unitCost = pkg.purchasePrice / pkg.purchaseQuantity;
-        packagingCost += unitCost * (item.quantityUsed * multiplier);
+        packagingCost += unitCost * (Number(item.quantityUsed || 0) * multiplier);
       }
     }
 
-    const laborCost = ((recipe.prepTimeMinutes * multiplier) / 60) * config.hourlyLaborRate;
-    const operationalCost = ((recipe.ovenTimeMinutes * multiplier) / 60) * config.electricityGasCostPerHour;
+    const prepMinutes = Number(recipe.prepTimeMinutes || 0);
+    const ovenMinutes = Number(recipe.ovenTimeMinutes || 0);
+    const hourlyLabor = Number(config.hourlyLaborRate || 0);
+    const electricRate = Number(config.electricityGasCostPerHour || 0);
+    const profitMargin = Number(recipe.desiredProfitMargin || 0);
+    const gatewayFee = Number(config.paymentGatewayFee || 0);
+
+    const laborCost = ((prepMinutes * multiplier) / 60) * hourlyLabor;
+    const operationalCost = ((ovenMinutes * multiplier) / 60) * electricRate;
 
     const totalProductionCost = ingredientsCostWithWaste + packagingCost + laborCost + operationalCost;
-    const priceBeforeFees = totalProductionCost * (1 + recipe.desiredProfitMargin / 100);
-    const feeFactor = 1 - (config.paymentGatewayFee / 100);
+    const priceBeforeFees = totalProductionCost * (1 + profitMargin / 100);
+    const feeFactor = 1 - (gatewayFee / 100);
     const finalSellingPrice = feeFactor > 0 ? priceBeforeFees / feeFactor : priceBeforeFees;
 
     const totalYield = Math.max(1, Math.round(targetYield));
