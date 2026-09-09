@@ -289,6 +289,11 @@ function MainApp() {
 
   const calculateRecipe = (recipe: Recipe, targetYield: number) => {
     if (!recipe || recipe.yield <= 0 || !config) return null;
+    
+    const currentBcvRate = Number(config.bcvRate || 36.50);
+    const activeCurrencyMultiplier = config.currencyMode === 'VES' ? currentBcvRate : 1;
+    const activeCurrencySymbol = config.currencyMode === 'VES' ? 'Bs.' : '$';
+
     const multiplier = targetYield / recipe.yield;
     
     const ingredientsMap = new Map(ingredients.map(i => [
@@ -339,16 +344,16 @@ function MainApp() {
     const pricePerUnit = totalYield > 0 ? finalSellingPrice / totalYield : finalSellingPrice;
 
     return {
-      ingredientsCost: ingredientsCostWithWaste * currencyMultiplier,
-      packagingCost: packagingCost * currencyMultiplier,
-      laborCost: laborCost * currencyMultiplier,
-      operationalCost: operationalCost * currencyMultiplier,
-      totalProductionCost: totalProductionCost * currencyMultiplier,
-      finalSellingPrice: finalSellingPrice * currencyMultiplier,
-      pricePerUnit: pricePerUnit * currencyMultiplier,
-      netProfit: (finalSellingPrice - totalProductionCost) * currencyMultiplier,
+      ingredientsCost: ingredientsCostWithWaste * activeCurrencyMultiplier,
+      packagingCost: packagingCost * activeCurrencyMultiplier,
+      laborCost: laborCost * activeCurrencyMultiplier,
+      operationalCost: operationalCost * activeCurrencyMultiplier,
+      totalProductionCost: totalProductionCost * activeCurrencyMultiplier,
+      finalSellingPrice: finalSellingPrice * activeCurrencyMultiplier,
+      pricePerUnit: pricePerUnit * activeCurrencyMultiplier,
+      netProfit: (finalSellingPrice - totalProductionCost) * activeCurrencyMultiplier,
       totalYield,
-      currencySymbol
+      currencySymbol: activeCurrencySymbol
     };
   };
 
