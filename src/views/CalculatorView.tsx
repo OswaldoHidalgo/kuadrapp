@@ -1,4 +1,4 @@
-import { Calculator, ChefHat, ChevronDown, SlidersHorizontal, Sparkles, Percent, Store, Layers, Package, Tag, Clock, Flame, DollarSign, FileCheck } from 'lucide-react';
+import { Calculator, ChefHat, ChevronDown, SlidersHorizontal, Sparkles, Percent, Store, Layers, Package, Tag, Clock, Flame, DollarSign, FileCheck, AlertTriangle } from 'lucide-react';
 import type { Recipe } from '../types';
 
 interface CalculatorViewProps {
@@ -42,14 +42,21 @@ export function CalculatorView({
   setIsSelectOpen,
   showToast
 }: CalculatorViewProps) {
+  // Cálculo exacto del costo por unidad de producción (Feedback Audio 3)
+  const unitProductionCost = results && desiredYield > 0 ? results.totalProductionCost / desiredYield : 0;
+  const unitSellingPrice = results && desiredYield > 0 ? results.finalSellingPrice / desiredYield : 0;
+  
+  // Alerta de viabilidad: si el costo de producción por unidad supera el 70% del precio sugerido o el margen es muy bajo
+  const isLowMargin = selectedRecipe && selectedRecipe.desiredProfitMargin < 20;
+
   return (
     <div className="space-y-4 animate-fadeIn">
       <div className={`${bgCard} p-4.5 rounded-3xl border flex flex-col gap-3 relative z-30 transition-all`}>
         <div>
           <h2 className={`text-sm font-bold ${textMain} flex items-center gap-2`}>
-            <Calculator className="w-4 h-4 text-[#8843F2] animate-bounce" /> Receta Activa
+            <Calculator className="w-4 h-4 text-[#8843F2] animate-bounce" /> Receta Activa y Lotes
           </h2>
-          <p className={`text-[11px] ${textSub}`}>Auditoría financiera instantánea en {config.currencyMode}.</p>
+          <p className={`text-[11px] ${textSub}`}>Auditoría financiera de producción en {config.currencyMode}.</p>
         </div>
 
         <div className="relative w-full" ref={dropdownRef}>
@@ -90,7 +97,7 @@ export function CalculatorView({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4 text-[#8843F2]" />
-                  <h3 className={`text-xs font-black uppercase tracking-wider ${textMain}`}>Cantidad a Producir</h3>
+                  <h3 className={`text-xs font-black uppercase tracking-wider ${textMain}`}>Cantidad a Producir (Lote)</h3>
                 </div>
                 <div className={`flex items-center gap-2 ${bgInner} px-3.5 py-2 rounded-2xl border border-slate-200 shadow-sm`}>
                   <input 
@@ -109,7 +116,7 @@ export function CalculatorView({
                 </div>
               </div>
               <p className={`text-[11px] ${textSub}`}>
-                Receta base rinde <strong className="text-[#8843F2]">{selectedRecipe.yield} unids</strong>. Desliza para calcular lotes.
+                Receta base rinde <strong className="text-[#8843F2]">{selectedRecipe.yield} unids</strong>. Ajusta el lote según los insumos disponibles.
               </p>
             </div>
 
@@ -132,6 +139,19 @@ export function CalculatorView({
             </div>
           </div>
 
+          {/* Alerta de Viabilidad Financiera (Feedback Audio 3) */}
+          {isLowMargin && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-3xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-black text-amber-300 uppercase">Alerta de Margen Reducido</h4>
+                <p className="text-[11px] text-amber-200/90 mt-0.5 leading-snug">
+                  Tu margen de ganancia configurado es menor al 20%. Asegúrate de revisar el costo de tus materiales y el rendimiento del lote para que la producción sea rentable.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-linear-to-br from-[#8843F2] to-[#EF2A82] text-white p-5 rounded-3xl shadow-xl border border-white/20 relative overflow-hidden transition-transform duration-300 hover:scale-[1.01]">
             <div className="absolute -right-2.5 -bottom-2.5 opacity-10 pointer-events-none">
               <Sparkles className="w-32 h-32 animate-spin duration-1000" />
@@ -139,7 +159,7 @@ export function CalculatorView({
             <div className="flex flex-col gap-3.5 relative z-10">
               <div>
                 <span className="text-[#F9D371] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 mb-0.5">
-                  <Sparkles className="w-3.5 h-3.5" /> Precio Sugerido Total ({results.totalYield} unids)
+                  <Sparkles className="w-3.5 h-3.5" /> Precio Sugerido Total ({desiredYield} unids)
                 </span>
                 <div className="text-4xl font-black tracking-tight animate-pulse text-white">{results.currencySymbol === 'Bs.' ? 'Bs. ' : '$'}{results.finalSellingPrice.toFixed(2)}</div>
                 <p className="text-slate-100 text-[11px] mt-1 font-medium flex items-center gap-2">
@@ -149,18 +169,24 @@ export function CalculatorView({
                 </p>
               </div>
 
-              <div className="bg-black/25 backdrop-blur-md p-3 rounded-2xl border border-white/10 flex items-center justify-between shadow-inner">
+              <div className="bg-black/25 backdrop-blur-md p-3 rounded-2xl border border-white/10 grid grid-cols-2 gap-3 shadow-inner">
                 <div>
-                  <span className="text-[#F9D371] text-[9px] uppercase font-bold tracking-wider block">Valor Unitario</span>
-                  <div className="text-lg font-extrabold">{results.currencySymbol === 'Bs.' ? 'Bs. ' : '$'}{results.pricePerUnit.toFixed(2)}</div>
+                  <span className="text-[#F9D371] text-[9px] uppercase font-bold tracking-wider block">Costo x Unidad</span>
+                  <div className="text-sm font-extrabold">{results.currencySymbol === 'Bs.' ? 'Bs. ' : '$'}{unitProductionCost.toFixed(2)}</div>
                 </div>
-                
+                <div>
+                  <span className="text-[#F9D371] text-[9px] uppercase font-bold tracking-wider block">Venta x Unidad</span>
+                  <div className="text-sm font-extrabold">{results.currencySymbol === 'Bs.' ? 'Bs. ' : '$'}{unitSellingPrice.toFixed(2)}</div>
+                </div>
+              </div>
+
+              <div className="pt-1 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setActiveTab('quotation-preview')}
-                  className="bg-white text-[#8843F2] hover:bg-slate-100 text-xs font-bold px-3.5 py-2 rounded-xl transition-all duration-200 active:scale-90 cursor-pointer flex items-center gap-1.5 shadow-md"
+                  className="bg-white text-[#8843F2] hover:bg-slate-100 text-xs font-bold px-4 py-2.5 rounded-xl transition-all duration-200 active:scale-90 cursor-pointer flex items-center gap-1.5 shadow-md w-full justify-center"
                 >
-                  <FileCheck className="w-3.5 h-3.5" /> Generar Cotización PDF
+                  <FileCheck className="w-3.5 h-3.5" /> Generar Cotización PDF del Lote
                 </button>
               </div>
             </div>
@@ -169,7 +195,7 @@ export function CalculatorView({
           <div className="grid grid-cols-1 gap-3.5">
             <div className={`${bgCard} p-4 rounded-3xl border space-y-2.5 transition-colors`}>
               <h3 className={`text-[11px] font-bold uppercase ${textSub} tracking-wider flex items-center gap-1.5`}>
-                <Layers className="w-4 h-4 text-[#8843F2]" /> Desglose Operativo (COGS)
+                <Layers className="w-4 h-4 text-[#8843F2]" /> Desglose Operativo del Lote (COGS)
               </h3>
               <div className="space-y-2 text-xs">
                 <div className={`flex justify-between py-1.5 border-b ${isDark ? 'border-[#341d6b]' : 'border-slate-100'}`}>
@@ -193,15 +219,15 @@ export function CalculatorView({
 
             <div className={`${bgCard} p-4 rounded-3xl border space-y-3 transition-colors`}>
               <h3 className={`text-[11px] font-bold uppercase ${textSub} tracking-wider flex items-center gap-1.5`}>
-                <DollarSign className="w-4 h-4 text-[#8843F2]" /> Métricas Financieras
+                <DollarSign className="w-4 h-4 text-[#8843F2]" /> Métricas Financieras Globales
               </h3>
               <div className="grid grid-cols-2 gap-2.5">
                 <div className={`${bgInner} p-3 rounded-2xl border`}>
-                  <span className={`text-[10px] font-bold uppercase ${textSub} block`}>Costo Total</span>
+                  <span className={`text-[10px] font-bold uppercase ${textSub} block`}>Costo Total del Lote</span>
                   <div className={`text-sm font-bold ${textMain} mt-0.5`}>{results.currencySymbol} {results.totalProductionCost.toFixed(2)}</div>
                 </div>
                 <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200">
-                  <span className="text-emerald-700 text-[10px] font-bold uppercase block">Ganancia Neta</span>
+                  <span className="text-emerald-700 text-[10px] font-bold uppercase block">Ganancia Neta Lote</span>
                   <div className="text-sm font-bold text-emerald-700 mt-0.5">{results.currencySymbol} {results.netProfit.toFixed(2)}</div>
                 </div>
               </div>

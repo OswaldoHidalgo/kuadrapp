@@ -96,16 +96,16 @@ export function IngredientsView({
       <div className={`${bgCard} p-4 rounded-3xl border flex flex-col gap-3 transition-colors`}>
         <div>
           <h2 className={`text-sm font-bold ${textMain} flex items-center gap-2`}>
-            <Package className="w-4 h-4 text-[#8843F2]" /> Inventario de Insumos
+            <Package className="w-4 h-4 text-[#8843F2]" /> Inventario de Insumos y Lotes
           </h2>
-          <p className={`text-[11px] ${textSub}`}>Control de marcas, presentaciones y costos.</p>
+          <p className={`text-[11px] ${textSub}`}>Control de marcas, presentaciones y costos unitarios de reposición.</p>
         </div>
         <button 
           type="button"
           onClick={() => setShowAddModal(true)}
           className="bg-[#8843F2] hover:bg-[#7733dc] text-white text-xs font-bold py-3.5 rounded-2xl transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-[#8843F2]/30 w-full"
         >
-          <Plus className="w-4 h-4" /> Registrar Nuevo Insumo
+          <Plus className="w-4 h-4" /> Registrar Nuevo Insumo / Lote
         </button>
       </div>
 
@@ -182,7 +182,7 @@ export function IngredientsView({
           <div className={`${isDark ? 'bg-[#221345] border-[#341d6b]' : 'bg-white border-slate-200'} border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 my-auto animate-fadeIn`}>
             <div className="flex justify-between items-center">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#8843F2] flex items-center gap-1.5">
-                <Tag className="w-4 h-4" /> Registrar Insumo ({currencySymbol})
+                <Tag className="w-4 h-4" /> Registrar Insumo / Lote ({currencySymbol})
               </h3>
               <button onClick={() => { setShowAddModal(false); setIsAddingNewCat(false); setIsNewIngCategoryOpen(false); }} className={`${textSub} p-1.5 cursor-pointer`}>
                 <X className="w-4 h-4" />
@@ -270,7 +270,7 @@ export function IngredientsView({
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className={`text-[10px] font-bold uppercase ${textSub} mb-1 block`}>Precio ({currencySymbol})</label>
+                  <label className={`text-[10px] font-bold uppercase ${textSub} mb-1 block`}>Precio Lote ({currencySymbol})</label>
                   <input 
                     type="number" 
                     inputMode="decimal"
@@ -341,12 +341,12 @@ export function IngredientsView({
               <div className="bg-purple-50 p-3 rounded-2xl border border-purple-100 flex items-start gap-2">
                 <Info className="w-4 h-4 text-[#8843F2] shrink-0 mt-0.5" />
                 <p className={`text-[10px] ${textSub} leading-snug`}>
-                  Indica lo que trae la presentación comprada (ej. 1 kg de azúcar = <strong className="text-[#8843F2]">1000 g</strong>).
+                  Registra cada compra de lote para que el costo unitario se calcule de forma exacta (ej. 1 kg de harina = <strong className="text-[#8843F2]">1000 g</strong>).
                 </p>
               </div>
 
               <button type="submit" className="w-full bg-[#8843F2] hover:bg-[#7733dc] text-white font-bold p-4 rounded-2xl transition active:scale-98 cursor-pointer uppercase tracking-wider shadow-md flex items-center justify-center gap-2 mt-2">
-                <Check className="w-4 h-4" /> Guardar Insumo Definitivo
+                <Check className="w-4 h-4" /> Guardar Insumo y Lote
               </button>
             </form>
           </div>
@@ -374,7 +374,7 @@ export function IngredientsView({
                       </span>
                     )}
                   </div>
-                  <p className={`text-[11px] ${textSub}`}>Presentación: {currencySymbol} {convertedPurchasePrice.toFixed(2)} / {ing.purchaseQuantity} {ing.unit}</p>
+                  <p className={`text-[11px] ${textSub}`}>Lote actual: {currencySymbol} {convertedPurchasePrice.toFixed(2)} / {ing.purchaseQuantity} {ing.unit}</p>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
@@ -394,16 +394,16 @@ export function IngredientsView({
                     </div>
                   ) : (
                     <div>
-                      <span className={`text-[9px] uppercase font-bold ${textSub} block`}>Costo Unitario</span>
+                      <span className={`text-[9px] uppercase font-bold ${textSub} block`}>Costo x Unidad Base</span>
                       <div className="text-sm font-black text-[#8843F2]">{currencySymbol} {unitCost.toFixed(4)} / {ing.unit}</div>
                     </div>
                   )}
 
                   <div className="flex items-center gap-1">
-                    <button onClick={() => { setEditingId(ing.id); setEditPriceVal(convertedPurchasePrice.toFixed(2)); }} className={`${textSub} hover:${textMain} p-2.5 cursor-pointer transition active:scale-90`}>
+                    <button onClick={() => { setEditingId(ing.id); setEditPriceVal(convertedPurchasePrice.toFixed(2)); }} className={`${textSub} hover:${textMain} p-2.5 cursor-pointer transition active:scale-90`} title="Actualizar precio de lote">
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteIngredient(ing.id)} className="text-slate-400 hover:text-red-500 p-2.5 cursor-pointer transition active:scale-90">
+                    <button onClick={() => handleDeleteIngredient(ing.id)} className="text-slate-400 hover:text-red-500 p-2.5 cursor-pointer transition active:scale-90" title="Eliminar insumo">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
