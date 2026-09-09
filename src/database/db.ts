@@ -11,15 +11,41 @@ export interface TenantData {
 
 export const Database = {
   async getTenantData(userEmail: string): Promise<TenantData> {
-    const cleanEmail = userEmail.toLowerCase();
+    const cleanEmail = (userEmail || '').trim().toLowerCase();
     
+    // CORREGIDO: Si no hay un correo válido, salimos inmediatamente sin consultar Supabase para evitar errores 406
+    if (!cleanEmail || cleanEmail === 'guest') {
+      return {
+        config: {
+          hourlyLaborRate: 3.50,
+          electricityGasCostPerHour: 1.00,
+          wastePercentage: 7,
+          paymentGatewayFee: 1.5,
+          bcvRate: 36.50,
+          currencyMode: 'USD',
+          businessName: 'Mi Negocio',
+          rifCedula: 'V-00.000.000',
+          phone: '+58 412-0000000',
+          documentType: 'Nota de Entrega / Presupuesto',
+          bankName: 'Banesco (0134)',
+          bankAccount: '0134-XXXX-XX-XXXXXXXXXX',
+          pagoMovilPhone: '0412-0000000 / V-00.000.000',
+          zelleEmail: 'pagos@inegocio.com',
+        },
+        categories: ['Harinas y Secos', 'Azúcares y Papelón', 'Lácteos y Grasas', 'Líquidos y Esencias', 'Empaques y Deco'],
+        ingredients: [],
+        recipes: []
+      };
+    }
+
     try {
-      // 1. Obtener configuración del tenant desde Supabase
-      const { data: configData } = await supabase
+      // 1. Obtener configuración del tenant desde Supabase (usando arreglo en vez de .single() para prevenir 406)
+      const { data: configRows } = await supabase
         .from('tenant_configs')
         .select('*')
-        .eq('email', cleanEmail)
-        .single();
+        .eq('email', cleanEmail);
+
+      const configData = configRows && configRows.length > 0 ? configRows[0] : null;
 
       // 2. Obtener insumos del tenant con aislamiento RLS
       const { data: ingData } = await supabase
@@ -64,13 +90,14 @@ export const Database = {
         zelleEmail: 'pagos@inegocio.com',
       },
       categories: ['Harinas y Secos', 'Azúcares y Papelón', 'Lácteos y Grasas', 'Líquidos y Esencias', 'Empaques y Deco'],
-      ingredients: [], // Sistema virgen sin insumos de prueba por defecto
-      recipes: []      // Sistema virgen sin recetas de prueba por defecto
+      ingredients: [],
+      recipes: []
     };
   },
 
   async saveTenantData(userEmail: string, data: TenantData) {
-    const cleanEmail = userEmail.toLowerCase();
+    const cleanEmail = (userEmail || '').trim().toLowerCase();
+    if (!cleanEmail || cleanEmail === 'guest') return;
     
     try {
       // Sincronizar configuraciones
