@@ -19,7 +19,7 @@ interface AuthContextType {
   allUsers: User[];
   usersList: User[];
   addUser: (user: Omit<User, 'id'>, pass: string) => void;
-  deleteUser: (id: string) => void;
+  deleteUser: (idOrEmail: string) => void;
   toggleUserStatus: (id: string) => void;
 }
 
@@ -35,7 +35,7 @@ const INITIAL_USERS: { [email: string]: { user: User; pass: string } } = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usersMap, setUsersMap] = useState(() => {
-    const saved = localStorage.getItem('kuadrapp_users_db_v9'); // Versión actualizada limpia
+    const saved = localStorage.getItem('kuadrapp_users_db_v9');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
@@ -163,16 +163,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedUsersMap));
   };
 
-  const deleteUser = (id: string) => {
-    const emailKey = Object.keys(usersMap).find(k => usersMap[k].user.id === id);
+  const deleteUser = (idOrEmail: string) => {
+    // Búsqueda robusta por ID interno o por correo exacto
+    const target = idOrEmail.toLowerCase();
+    const emailKey = Object.keys(usersMap).find(
+      k => k === target || usersMap[k].user.id === idOrEmail
+    );
+
     if (emailKey && emailKey !== 'kuadrapp.ve@gmail.com') {
       const copyUsers = { ...usersMap };
       const copyPass = { ...passwordsMap };
+      
       delete copyUsers[emailKey];
       delete copyPass[emailKey];
+      
       setUsersMap(copyUsers);
       setPasswordsMap(copyPass);
+      
       localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(copyUsers));
+      localStorage.setItem('kuadrapp_pass_db_v9', JSON.stringify(copyPass));
     }
   };
 
