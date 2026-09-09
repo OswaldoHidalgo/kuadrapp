@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { KuadrappLogo } from '../components/KuadrappLogo';
 
 export function SuperAdminView({ showToast }: { showToast: (msg: string) => void }) {
-  const { usersList, toggleUserStatus, logout } = useAuth();
+  const { usersList, toggleUserStatus, logout, deleteUser, addUser } = useAuth();
   const [adminTab, setAdminTab] = useState<'dashboard' | 'tenants' | 'plans' | 'audit'>('dashboard');
   
   const [showUserModal, setShowUserModal] = useState(false);
@@ -16,11 +16,17 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
-  const [formPlan, setFormPlan] = useState<'free' | 'pro' | 'business'>('pro');
+  const [formPlan, setFormPlan] = useState<'free' | 'pro' | 'business'>('free');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Métricas reales y dinámicas basadas en usersList
   const totalUsers = usersList.length;
-  const estimatedMRR = (usersList.filter(u => u.plan === 'pro').length * 9.99) + (usersList.filter(u => u.plan === 'business').length * 24.99);
+  const activeTenantsCount = usersList.filter(u => u.plan !== 'superadmin').length;
+  const estimatedMRR = usersList.reduce((acc, u) => {
+    if (u.plan === 'pro') return acc + 9.99;
+    if (u.plan === 'business') return acc + 24.99;
+    return acc;
+  }, 0);
 
   const filteredUsers = usersList.filter(u => 
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -32,7 +38,7 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
     setFormName('');
     setFormEmail('');
     setFormPassword('Temp2026*');
-    setFormPlan('pro');
+    setFormPlan('free'); // Por defecto en plan free como solicitaste
     setShowUserModal(true);
   };
 
@@ -49,31 +55,31 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
     e.preventDefault();
     if (!formName || !formEmail) return;
 
-    const allUsers = JSON.parse(localStorage.getItem('kuadrapp_saas_users') || '[]');
-
     if (editingUserId) {
-      const updated = allUsers.map((u: any) => u.id === editingUserId ? { 
-        ...u, 
-        name: formName, 
-        email: formEmail, 
-        plan: formPlan,
-        ...(formPassword ? { password: formPassword, mustChangePassword: true } : {})
-      } : u);
-      localStorage.setItem('kuadrapp_saas_users', JSON.stringify(updated));
-      showToast(`✨ Inquilino ${formName} actualizado con éxito.`);
+      // Actualizar a través de la base de datos local unificada
+      const savedDb = JSON.parse(localStorage.getItem('kuadrapp_users_db_v9') || '{}');
+      const emailKey = Object.keys(savedDb).find(k => savedDb[k].user.id === editingUserId);
+      
+      if (emailKey) {
+        savedDb[emailKey].user.name = formName;
+        savedDb[emailKey].user.plan = formPlan;
+        if (formPassword) {
+          savedDb[emailKey].pass = formPassword;
+          savedDb[emailKey].user.mustChangePassword = true;
+        }
+        localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(savedDb));
+        showToast(`✨ Inquilino ${formName} actualizado con éxito.`);
+      }
     } else {
-      const newUser = {
-        id: Date.now().toString(),
-        name: formName,
-        email: formEmail,
-        password: formPassword || 'Temp2026*',
-        mustChangePassword: true,
+      // Crear nuevo usuario respetando el plan Free por defecto
+      addUser({
+        email: formEmail.trim().toLowerCase(),
+        name: formName.trim(),
         plan: formPlan,
-        isActive: true
-      };
-      const updated = [...allUsers, newUser];
-      localStorage.setItem('kuadrapp_saas_users', JSON.stringify(updated));
-      showToast(`🚀 Inquilino ${formName} creado con contraseña temporal.`);
+        isActive: true,
+        mustChangePassword: true
+      }, formPassword || 'Temp2026*');
+      showToast(`🚀 Inquilino ${formName} aprovisionado correctamente.`);
     }
 
     setShowUserModal(false);
@@ -82,8 +88,7 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
 
   const handleDeleteUser = (id: string, name: string) => {
     if (confirm(`¿Estás seguro de dar de baja y eliminar permanentemente a ${name}?`)) {
-      const updated = usersList.filter(u => u.id !== id);
-      localStorage.setItem('kuadrapp_saas_users', JSON.stringify(updated));
+      deleteUser(id); // Usa la función robusta del contexto
       showToast(`🗑️ Inquilino ${name} eliminado del sistema.`);
       window.location.reload();
     }
@@ -203,9 +208,9 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
                     <span className="text-[11px] font-bold uppercase tracking-wider">Usuarios Activos Totales</span>
                     <Users className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="text-3xl font-black text-white">{totalUsers * 150}k</div>
+                  <div className="text-3xl font-black text-white">{totalUsers}</div>
                   <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold">
-                    <TrendingUp className="w-3 h-3" /> +0.9% El mes pasado
+                    <TrendingUp className="w-3 h-3" /> Base sincronizada
                   </p>
                 </div>
 
@@ -214,9 +219,9 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
                     <span className="text-[11px] font-bold uppercase tracking-wider">Ingresos Mensuales (MRR)</span>
                     <DollarSign className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <div className="text-3xl font-black text-white">${(estimatedMRR * 12).toFixed(0)}</div>
+                  <div className="text-3xl font-black text-white">${estimatedMRR.toFixed(2)}</div>
                   <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold">
-                    <TrendingUp className="w-3 h-3" /> +1.7% El mes pasado
+                    <TrendingUp className="w-3 h-3" /> Cálculo en vivo por plan
                   </p>
                 </div>
 
@@ -225,7 +230,7 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
                     <span className="text-[11px] font-bold uppercase tracking-wider">Inquilinos Activos</span>
                     <Activity className="w-4 h-4 text-cyan-400" />
                   </div>
-                  <div className="text-3xl font-black text-white">{totalUsers}</div>
+                  <div className="text-3xl font-black text-white">{activeTenantsCount}</div>
                   <p className="text-[11px] text-purple-300 font-semibold">Instancias SaaS en línea</p>
                 </div>
 
@@ -234,9 +239,9 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
                     <span className="text-[11px] font-bold uppercase tracking-wider">Tickets Abiertos</span>
                     <ShieldAlert className="w-4 h-4 text-amber-400" />
                   </div>
-                  <div className="text-3xl font-black text-white">4</div>
-                  <p className="text-[11px] text-amber-400 flex items-center gap-1 font-semibold">
-                    <AlertTriangle className="w-3 h-3" /> Requieren atención
+                  <div className="text-3xl font-black text-white">0</div>
+                  <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold">
+                    <Check className="w-3 h-3" /> Sin incidencias pendientes
                   </p>
                 </div>
               </div>
