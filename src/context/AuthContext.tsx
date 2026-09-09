@@ -125,13 +125,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: 'usr-' + Date.now(),
       email: cleanEmail,
       name: name.trim() || 'Nuevo Repostero',
-      plan: 'free', // <--- ¡Estrictamente en Plan Free por defecto para nuevos registros!
+      plan: 'free', // <--- Estrictamente en Plan Free por defecto
       isActive: true
     };
 
-    setUsersMap({ ...usersMap, [cleanEmail]: { user: newUser, pass } });
+    const updatedUsersMap = { 
+      ...usersMap, 
+      [cleanEmail]: { user: newUser, pass } 
+    };
+
+    setUsersMap(updatedUsersMap);
     setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
     setCurrentUser(newUser);
+    
+    // Forzar persistencia inmediata para el panel de administración
+    localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedUsersMap));
+    
     return true;
   };
 
@@ -145,15 +154,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updated = { ...currentUser, mustChangePassword: false };
     setCurrentUser(updated);
     if (usersMap[currentUser.email]) {
-      setUsersMap({ ...usersMap, [currentUser.email]: { ...usersMap[currentUser.email], user: updated } });
+      const updatedMap = { ...usersMap, [currentUser.email]: { ...usersMap[currentUser.email], user: updated } };
+      setUsersMap(updatedMap);
+      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedMap));
     }
   };
 
   const addUser = (userObj: Omit<User, 'id'>, pass: string) => {
     const cleanEmail = userObj.email.trim().toLowerCase();
     const newUser: User = { ...userObj, id: 'usr-' + Date.now(), email: cleanEmail, isActive: true };
-    setUsersMap({ ...usersMap, [cleanEmail]: { user: newUser, pass } });
+    const updatedUsersMap = { ...usersMap, [cleanEmail]: { user: newUser, pass } };
+    setUsersMap(updatedUsersMap);
     setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
+    localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedUsersMap));
   };
 
   const deleteUser = (id: string) => {
@@ -165,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       delete copyPass[emailKey];
       setUsersMap(copyUsers);
       setPasswordsMap(copyPass);
+      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(copyUsers));
     }
   };
 
@@ -173,7 +187,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (emailKey && emailKey !== 'kuadrapp.ve@gmail.com') {
       const currentUsr = usersMap[emailKey].user;
       const updatedUsr = { ...currentUsr, isActive: currentUsr.isActive === false ? true : false };
-      setUsersMap({ ...usersMap, [emailKey]: { ...usersMap[emailKey], user: updatedUsr } });
+      const updatedMap = { ...usersMap, [emailKey]: { ...usersMap[emailKey], user: updatedUsr } };
+      setUsersMap(updatedMap);
+      localStorage.setItem('kuadrapp_users_db_v8', JSON.stringify(updatedMap));
     }
   };
 
