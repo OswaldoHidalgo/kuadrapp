@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Users, CreditCard, CheckCircle, XCircle, LogOut, 
   Search, TrendingUp, DollarSign, Activity, LayoutDashboard, 
-  Trash2, Edit3, X, Bell, Sparkles, AlertTriangle, ShieldAlert, Terminal, Lock, Check
+  Trash2, Edit3, X, Bell, Sparkles, ShieldAlert, Terminal, Lock, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KuadrappLogo } from '../components/KuadrappLogo';
@@ -38,7 +38,7 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
     setFormName('');
     setFormEmail('');
     setFormPassword('Temp2026*');
-    setFormPlan('free'); // Por defecto en plan free como solicitaste
+    setFormPlan('free');
     setShowUserModal(true);
   };
 
@@ -56,7 +56,6 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
     if (!formName || !formEmail) return;
 
     if (editingUserId) {
-      // Actualizar a través de la base de datos local unificada
       const savedDb = JSON.parse(localStorage.getItem('kuadrapp_users_db_v9') || '{}');
       const emailKey = Object.keys(savedDb).find(k => savedDb[k].user.id === editingUserId);
       
@@ -71,7 +70,6 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
         showToast(`✨ Inquilino ${formName} actualizado con éxito.`);
       }
     } else {
-      // Crear nuevo usuario respetando el plan Free por defecto
       addUser({
         email: formEmail.trim().toLowerCase(),
         name: formName.trim(),
@@ -88,7 +86,7 @@ export function SuperAdminView({ showToast }: { showToast: (msg: string) => void
 
   const handleDeleteUser = (id: string, name: string) => {
     if (confirm(`¿Estás seguro de dar de baja y eliminar permanentemente a ${name}?`)) {
-      deleteUser(id); // Usa la función robusta del contexto
+      deleteUser(id);
       showToast(`🗑️ Inquilino ${name} eliminado del sistema.`);
       window.location.reload();
     }
