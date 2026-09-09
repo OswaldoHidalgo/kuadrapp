@@ -94,7 +94,8 @@ function MainApp() {
     showToast(`📈 ¡Tasa BCV sincronizada a Bs. ${simulatedLiveRate}!`);
   };
 
-  const currencyMultiplier = config?.currencyMode === 'VES' ? config.bcvRate : 1;
+  const bcvRate = Number(config?.bcvRate || 36.50);
+  const currencyMultiplier = config?.currencyMode === 'VES' ? bcvRate : 1;
   const currencySymbol = config?.currencyMode === 'VES' ? 'Bs.' : '$';
 
   const [newIngName, setNewIngName] = useState('');
@@ -165,7 +166,7 @@ function MainApp() {
   const handleAddIngredient = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIngName || !newIngPrice || !newIngQty) return;
-    const rawPrice = config.currencyMode === 'VES' ? parseFloat(newIngPrice) / config.bcvRate : parseFloat(newIngPrice);
+    const rawPrice = config.currencyMode === 'VES' ? parseFloat(newIngPrice) / bcvRate : parseFloat(newIngPrice);
     const newItem = {
       id: Date.now().toString(),
       name: newIngName,
@@ -192,7 +193,7 @@ function MainApp() {
   const handleUpdatePrice = (id: string) => {
     const parsed = parseFloat(editPriceVal);
     if (isNaN(parsed) || parsed <= 0) return;
-    const rawPrice = config.currencyMode === 'VES' ? parsed / config.bcvRate : parsed;
+    const rawPrice = config.currencyMode === 'VES' ? parsed / bcvRate : parsed;
     setIngredients(ingredients.map(ing => ing.id === id ? { ...ing, purchasePrice: rawPrice } : ing));
     setEditingId(null);
     setEditPriceVal('');
@@ -368,7 +369,7 @@ function MainApp() {
            `📌 *Condiciones:*\n` +
            `1. Validez de cotización: 7 días.\n` +
            `2. Se requiere 50% de abono para procesar el pedido.\n` +
-           `3. Pagos en Bs regidos por tasa BCV oficial (Bs. ${config.bcvRate}/$).\n\n` +
+           `3. Pagos en Bs regidos por tasa BCV oficial (Bs. ${bcvRate}/$).\n\n` +
            `📞 Contacto: ${config.phone}\n` +
            `_Calculado con Kuadrapp_`;
   };
