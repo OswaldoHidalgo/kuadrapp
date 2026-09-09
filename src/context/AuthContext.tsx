@@ -102,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || cleanEmail === 'guest') return false;
     
     if (cleanEmail === INITIAL_ADMIN_EMAIL && pass === 'Kuadrapp2026*') {
       const adminUser: User = {
@@ -141,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, pass: string): Promise<boolean> => {
     const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || cleanEmail === 'guest') return false;
 
     const { data: existing } = await supabase
       .from('tenant_configs')
