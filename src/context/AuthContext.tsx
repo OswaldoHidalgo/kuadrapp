@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: 'usr-' + Date.now(),
       email: cleanEmail,
       name: name.trim() || 'Nuevo Repostero',
-      plan: 'pro',
+      plan: 'free', // <--- ¡Estrictamente en Plan Free por defecto para nuevos registros!
       isActive: true
     };
 
