@@ -113,7 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = (name: string, email: string, pass: string): boolean => {
     const cleanEmail = email.trim().toLowerCase();
-    if (usersMap[cleanEmail]) {
+    
+    // Leer siempre la base más reciente del localStorage para evitar sobreescrituras desincronizadas
+    const currentDb = JSON.parse(localStorage.getItem('kuadrapp_users_db_v9') || '{}');
+    const currentPass = JSON.parse(localStorage.getItem('kuadrapp_pass_db_v9') || '{}');
+
+    if (currentDb[cleanEmail] || usersMap[cleanEmail]) {
       return false;
     }
 
@@ -126,15 +131,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const updatedUsersMap = { 
+      ...currentDb,
       ...usersMap, 
       [cleanEmail]: { user: newUser, pass } 
     };
 
+    const updatedPassMap = {
+      ...currentPass,
+      ...passwordsMap,
+      [cleanEmail]: pass
+    };
+
     setUsersMap(updatedUsersMap);
-    setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
+    setPasswordsMap(updatedPassMap);
     setCurrentUser(newUser);
     
+    // Persistencia inmediata y compartida en localStorage
     localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedUsersMap));
+    localStorage.setItem('kuadrapp_pass_db_v9', JSON.stringify(updatedPassMap));
     return true;
   };
 
@@ -144,7 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updatePassword = (newPass: string) => {
     if (!currentUser) return;
-    setPasswordsMap({ ...passwordsMap, [currentUser.email]: newPass });
+    const updatedPassMap = { ...passwordsMap, [currentUser.email]: newPass };
+    setPasswordsMap(updatedPassMap);
     const updated = { ...currentUser, mustChangePassword: false };
     setCurrentUser(updated);
     if (usersMap[currentUser.email]) {
@@ -152,19 +167,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsersMap(updatedMap);
       localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedMap));
     }
+    localStorage.setItem('kuadrapp_pass_db_v9', JSON.stringify(updatedPassMap));
   };
 
   const addUser = (userObj: Omit<User, 'id'>, pass: string) => {
     const cleanEmail = userObj.email.trim().toLowerCase();
     const newUser: User = { ...userObj, id: 'usr-' + Date.now(), email: cleanEmail, isActive: true };
     const updatedUsersMap = { ...usersMap, [cleanEmail]: { user: newUser, pass } };
+    const updatedPassMap = { ...passwordsMap, [cleanEmail]: pass };
     setUsersMap(updatedUsersMap);
-    setPasswordsMap({ ...passwordsMap, [cleanEmail]: pass });
+    setPasswordsMap(updatedPassMap);
     localStorage.setItem('kuadrapp_users_db_v9', JSON.stringify(updatedUsersMap));
+    localStorage.setItem('kuadrapp_pass_db_v9', JSON.stringify(updatedPassMap));
   };
 
   const deleteUser = (idOrEmail: string) => {
-    // Búsqueda robusta por ID interno o por correo exacto
     const target = idOrEmail.toLowerCase();
     const emailKey = Object.keys(usersMap).find(
       k => k === target || usersMap[k].user.id === idOrEmail
