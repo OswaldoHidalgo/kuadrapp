@@ -37,7 +37,8 @@ function MainApp() {
     localStorage.setItem('kuadrapp_theme_v8', JSON.stringify(theme));
   }, [theme]);
 
-  const userEmail = currentUser?.email || 'guest';
+  // CORREGIDO: Evita usar 'guest' para prevenir consultas erróneas a Supabase
+  const userEmail = currentUser?.email || '';
 
   const [config, setConfig] = useState<any>(null);
   const [categories, setCategories] = useState<string[]>([]);
@@ -49,6 +50,10 @@ function MainApp() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   useEffect(() => {
+    if (!userEmail) {
+      setIsLoadingDB(false);
+      return;
+    }
     let isMounted = true;
     setIsLoadingDB(true);
     Database.getTenantData(userEmail).then((data: TenantData) => {
